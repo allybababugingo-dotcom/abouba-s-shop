@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin | Aboubakar's Collection</title>
+    <style>
+        /* General Styles */
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            background-color: #2c3e50; 
+            color: white; 
+            padding: 20px; 
+            display: flex; 
+            justify-content: center; 
+        }
+        
+        .admin-box { 
+            background: #ecf0f1; 
+            color: #333; 
+            padding: 30px; 
+            border-radius: 15px; 
+            width: 100%; 
+            max-width: 450px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3); 
+        }
+        
+        .admin-logo { 
+            width: 100px; 
+            height: 100px; 
+            display: block; 
+            margin: 0 auto 15px auto; 
+            border-radius: 50%; 
+            object-fit: cover; 
+        }
+        
+        h2 { 
+            text-align: center; 
+            color: #2c3e50; 
+            margin-top: 0; 
+        }
+        
+        .form-group { 
+            margin-bottom: 15px; 
+        }
+        
+        label { 
+            display: block; 
+            margin-bottom: 5px; 
+            font-weight: bold; 
+        }
+        
+        input[type="text"], input[type="number"], input[type="file"] { 
+            width: 100%; 
+            padding: 10px; 
+            border: 1px solid #ccc; 
+            border-radius: 5px; 
+            box-sizing: border-box; 
+        }
+        
+        /* Buttons */
+        .upload-btn { 
+            background-color: #e67e22; 
+            color: white; 
+            border: none; 
+            padding: 15px; 
+            width: 100%; 
+            border-radius: 5px; 
+            font-size: 1.1rem; 
+            cursor: pointer; 
+            margin-top: 10px; 
+            font-weight: bold; 
+        }
+        
+        .upload-btn:hover { 
+            background-color: #d35400; 
+        }
+        
+        .nav-btn { 
+            background: #3498db; 
+            color: white; 
+            border: none; 
+            padding: 10px; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            margin-bottom: 15px; 
+            width: 100%; 
+            font-weight: bold; 
+        }
+        
+        /* Inventory Management Section */
+        .inventory-section { 
+            margin-top: 30px; 
+            background: #fff; 
+            padding: 20px; 
+            border-radius: 15px; 
+            color: #333; 
+            border: 1px solid #ddd; 
+        }
+        
+        .inventory-item { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding: 10px 0; 
+            border-bottom: 1px solid #eee; 
+        }
+        
+        .inventory-item:last-child { 
+            border-bottom: none; 
+        }
+        
+        .action-buttons { 
+            display: flex; 
+            gap: 5px; 
+        }
+        
+        .sell-btn { 
+            background: #e74c3c; 
+            color: white; 
+            border: none; 
+            padding: 5px 10px; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            font-size: 0.8rem; 
+        }
+        
+        .delete-btn { 
+            background: #7f8c8d; 
+            color: white; 
+            border: none; 
+            padding: 5px 10px; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            font-size: 0.8rem; 
+        }
+        
+        .delete-btn:hover { 
+            background: #95a5a6; 
+        }
+
+        .stats-box { 
+            margin-top: 20px; 
+            padding-top: 10px; 
+            border-top: 2px dashed #bdc3c7; 
+            font-size: 0.9rem; 
+        }
+        
+        .logout-link { 
+            display: block; 
+            text-align: center; 
+            color: #e74c3c; 
+            text-decoration: none; 
+            font-size: 0.8rem; 
+            margin-top: 15px; 
+            cursor: pointer; 
+        }
+    </style>
+</head>
+
+<body>
+    <div class="admin-box">
+        <button class="nav-btn" onclick="window.location.href='index.html'">🏠 View Shop (Home)</button>
+
+        <img src="logo.jpg" alt="Logo" class="admin-logo">
+        <h2>ABOUBAKAR'S ADMIN</h2>
+        <p style="text-align:center; font-size: 0.8rem;">Manage your collection and inventory</p>
+
+        <form id="productForm">
+            <div class="form-group">
+                <label>Product Name</label>
+                <input type="text" id="pName" placeholder="e.g. Leather Sandals" required>
+            </div>
+
+            <div class="form-group">
+                <label>Price (RWF)</label>
+                <input type="number" id="pPrice" placeholder="Enter amount" required>
+            </div>
+
+            <div class="form-group">
+                <label>Product Photo</label>
+                <input type="file" id="pFile" accept="image/*" required>
+            </div>
+
+            <button type="submit" class="upload-btn">🚀 Post to Website</button>
+        </form>
+
+        <div class="inventory-section">
+            <h3>📦 Current Inventory</h3>
+            <div id="inventoryList">Loading items...</div>
+        </div>
+
+        <div class="stats-box">
+            <strong>Shop Status:</strong>
+            <ul>
+                <li>Sold Items: <span id="soldCount">0</span></li>
+                <li>Total Profit: <span id="profitCount">0</span> RWF</li>
+            </ul>
+        </div>
+
+        <a class="logout-link" onclick="logout()">Logout</a>
+    </div>
+
+    <script type="module">
+        // 1. SECURITY CHECK
+        if (localStorage.getItem("isLoggedIn") !== "true") {
+            window.location.href = "login.html";
+        }
+
+        window.logout = function() {
+            localStorage.removeItem("isLoggedIn");
+            window.location.href = "login.html";
+        };
+
+        // 2. FIREBASE SETUP
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyB8N3vmlsRFO_Ig2WezUbWOQE3C0gwqgLM",
+            authDomain: "abouba-shop.firebaseapp.com",
+            projectId: "abouba-shop",
+            storageBucket: "abouba-shop.firebasestorage.app",
+            messagingSenderId: "1000556239268",
+            appId: "1:1000556239268:web:48fddd24c37ab15ce18931"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+
+        // 3. INVENTORY & STATS TRACKER
+        onSnapshot(collection(db, "products"), (snapshot) => {
+            let totalSold = 0;
+            let totalProfit = 0;
+            const inventoryDiv = document.getElementById('inventoryList');
+            inventoryDiv.innerHTML = ""; 
+
+            snapshot.forEach((docSnap) => {
+                const p = docSnap.data();
+                const id = docSnap.id;
+
+                if(p.status === "sold") {
+                    totalSold++;
+                    totalProfit += Number(p.price);
+                } else {
+                    inventoryDiv.innerHTML += `
+                        <div class="inventory-item">
+                            <span>${p.name}</span>
+                            <div class="action-buttons">
+                                <button class="sell-btn" onclick="markAsSold('${id}', '${p.name}')">Sell</button>
+                                <button class="delete-btn" onclick="deleteItem('${id}', '${p.name}')">                            Delete</button>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+
+            document.getElementById('soldCount').innerText = totalSold;
+            document.getElementById('profitCount').innerText = totalProfit.toLocaleString();
+            
+            if (inventoryDiv.innerHTML === "") {
+                inventoryDiv.innerHTML = "<p style='font-size:0.8rem; color: #888;'>No active items.</p>";
+            }
+        });
+
+        // 4. MARK AS SOLD FUNCTION
+        window.markAsSold = async (id, name) => {
+            if (confirm(`Confirm sale of ${name}?`)) {
+                try {
+                    const itemRef = doc(db, "products", id);
+                    await updateDoc(itemRef, {
+                        status: "sold",
+                        soldDate: new Date()
+                    });
+                } catch (error) {
+                    alert("Error updating status: " + error.message);
+                }
+            }
+        };
+
+        // 5. DELETE FUNCTION
+        window.deleteItem = async (id, name) => {
+            if (confirm(`Are you sure you want to PERMANENTLY delete ${name}? This cannot be undone.`)) {
+                try {
+                    await deleteDoc(doc(db, "products", id));
+                } catch (error) {
+                    alert("Error deleting item: " + error.message);
+                }
+            }
+        };
+
+        // 6. UPLOAD LOGIC
+        document.getElementById('productForm').onsubmit = async function(e) {
+            e.preventDefault();
+            const btn = e.target.querySelector('button');
+            btn.innerText = "⏳ Uploading...";
+            btn.disabled = true;
+
+            const name = document.getElementById('pName').value;
+            const price = document.getElementById('pPrice').value;
+            const file = document.getElementById('pFile').files[0];
+
+            try {
+                const storageRef = ref(storage, 'products/' + Date.now() + "_" + file.name);
+                await uploadBytes(storageRef, file);
+                const photoURL = await getDownloadURL(storageRef);
+
+                await addDoc(collection(db, "products"), {
+                    name: name,
+                    price: price,
+                    image: photoURL,
+                    status: "available",
+                    createdAt: new Date()
+                });
+
+                alert("🚀 Success! Item is now live.");
+                this.reset();
+            } catch (error) {
+                alert("Upload failed: " + error.message);
+            } finally {
+                btn.innerText = "🚀 Post to Website";
+                btn.disabled = false;
+            }
+        };
+    </script>
+</body>
+</html>

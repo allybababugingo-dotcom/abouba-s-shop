@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Abouba's Shop | Online & Market</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* LOGO STYLING */
+        .logo-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .shop-logo {
+            width: 120px; /* Adjust size as needed */
+            height: 120px;
+            object-fit: contain;
+            border-radius: 50%; /* Makes it circular if it's a square image */
+            background-color: #fff;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            padding: 10px;
+        }
+
+        h1 { color: #2c3e50; margin: 10px 0 5px 0; }
+        .subtitle { color: #25D366; font-weight: bold; margin-bottom: 30px; }
+
+        .shop-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 25px;
+            max-width: 1100px;
+            width: 100%;
+        }
+
+        .product-card {
+            background: white;
+            border-radius: 20px;
+            padding: 15px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .product-card:hover { transform: translateY(-5px); }
+
+        .product-image {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+            border-radius: 15px;
+            background-color: #eee;
+        }
+
+        .price-tag {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 15px 0;
+        }
+
+        .whatsapp-btn {
+            background-color: #25D366;
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .whatsapp-btn:hover { background-color: #128C7E; }
+    </style>
+</head>
+<body>
+
+    <div class="brand-header">
+        <img src="logo.jpg" alt="Aboubakar's Collection Logo" class="logo-img">
+        <h1>ABOUBAKAR'S COLLECTION</h1>
+        <p class="subtitle">Negotiate & Pay via WhatsApp</p>
+    </div>
+
+    <div class="shop-container" id="shop-container">
+        <p>Loading products...</p>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyB8N3vmlsRFO_Ig2WezUbWOQE3C0gwqgLM",
+            authDomain: "abouba-shop.firebaseapp.com",
+            projectId: "abouba-shop",
+            storageBucket: "abouba-shop.firebasestorage.app",
+            messagingSenderId: "1000556239268",
+            appId: "1:1000556239268:web:48fddd24c37ab15ce18931"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const shopContainer = document.getElementById('shop-container');
+
+        const q = query(collection(db, "products"), where("status", "==", "available"));
+
+        onSnapshot(q, (snapshot) => {
+            shopContainer.innerHTML = "";
+            snapshot.forEach((doc) => {
+                const item = doc.data();
+                shopContainer.innerHTML += `
+                    <div class="product-card">
+                        <img src="${item.image}" class="product-image">
+                        <h3>${item.name}</h3>
+                        <div class="price-tag">${Number(item.price).toLocaleString()} RWF</div>
+                        <button class="whatsapp-btn" onclick="openWhatsApp('${item.name}', '${item.price}')">
+                            💬 Chat on WhatsApp
+                        </button>
+                    </div>
+                `;
+            });
+        });
+
+        window.openWhatsApp = (name, price) => {
+            const phone = "250790797023"; // Updated to match your logo!
+            const message = `Hello! I'm interested in the ${name} (${price} RWF) from Aboubakar's Collection.`;
+            window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
+        };;
+    </script>
+
+    <footer style="margin-top: 60px; padding: 30px; color: #95a5a6; font-size: 0.8rem; text-align: center; border-top: 1px solid #ddd; width: 100%;">
+        <p>© 2026 Abouba's Shop - Kigali, Rwanda</p>
+        <a href="login.html" style="color: #bdc3c7; text-decoration: none;">Staff Login</a>
+    </footer>
+</body>
+</html>
