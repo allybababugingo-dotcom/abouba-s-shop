@@ -156,6 +156,7 @@
             cursor: pointer; 
         }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
@@ -201,7 +202,7 @@
         <a class="logout-link" onclick="logout()">Logout</a>
     </div>
 
-    <script type="module">
+    <script>
         // 1. SECURITY CHECK
         if (localStorage.getItem("isLoggedIn") !== "true") {
             window.location.href = "login.html";
@@ -212,36 +213,30 @@
             window.location.href = "login.html";
         };
 
-        // 2. FIREBASE SETUP
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyB8N3vmlsRFO_Ig2WezUbWOQE3C0gwqgLM",
-            authDomain: "abouba-shop.firebaseapp.com",
-            projectId: "abouba-shop",
-            storageBucket: "abouba-shop.firebasestorage.app",
-            messagingSenderId: "1000556239268",
-            appId: "1:1000556239268:web:48fddd24c37ab15ce18931"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const storage = getStorage(app);
+        // 2. SUPABASE SETUP
+        // Replace these with your actual Supabase URL and Anon Key!
+        const supabaseUrl = 'YOUR_SUPABASE_URL'; 
+        const supabaseKey = 'YOUR_ANON_PUBLIC_KEY';
+        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
         // 3. INVENTORY & STATS TRACKER
-        onSnapshot(collection(db, "products"), (snapshot) => {
+        async function fetchInventory() {
+            const { data: products, error } = await supabase
+                .from('products')
+                .select('*');
+
+            if (error) {
+                console.error("Error fetching inventory:", error);
+                return;
+            }
+
             let totalSold = 0;
             let totalProfit = 0;
             const inventoryDiv = document.getElementById('inventoryList');
             inventoryDiv.innerHTML = ""; 
 
-            snapshot.forEach((docSnap) => {
-                const p = docSnap.data();
-                const id = docSnap.id;
-
-                if(p.status === "sold") {
+            products.forEach((p) => {
+                if (p.status === "sold") {
                     totalSold++;
                     totalProfit += Number(p.price);
                 } else {
@@ -249,8 +244,8 @@
                         <div class="inventory-item">
                             <span>${p.name}</span>
                             <div class="action-buttons">
-                                <button class="sell-btn" onclick="markAsSold('${id}', '${p.name}')">Sell</button>
-                                <button class="delete-btn" onclick="deleteItem('${id}', '${p.name}')">                            Delete</button>
+                                <button class="sell-btn" onclick="markAsSold('${p.id}', '${p.name}')">Sell</button>
+                                <button class="delete-btn" onclick="deleteItem('${p.id}', '${p.name}')">Delete</button>
                             </div>
                         </div>
                     `;
@@ -263,18 +258,27 @@
             if (inventoryDiv.innerHTML === "") {
                 inventoryDiv.innerHTML = "<p style='font-size:0.8rem; color: #888;'>No active items.</p>";
             }
-        });
+        }
+
+        // Run fetch initially
+        fetchInventory();
+
+        // Listen for real-time changes to update the dashboard automatically
+        supabase.channel('custom-all-channel')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, (payload) => {
+            fetchInventory();
+          })
+          .subscribe();
 
         // 4. MARK AS SOLD FUNCTION
         window.markAsSold = async (id, name) => {
             if (confirm(`Confirm sale of ${name}?`)) {
-                try {
-                    const itemRef = doc(db, "products", id);
-                    await updateDoc(itemRef, {
-                        status: "sold",
-                        soldDate: new Date()
-                    });
-                } catch (error) {
+                const { error } = await supabase
+                    .from('products')
+                    .update({ status: 'sold' })
+                    .eq('id', id);
+
+                if (error) {
                     alert("Error updating status: " + error.message);
                 }
             }
@@ -283,9 +287,12 @@
         // 5. DELETE FUNCTION
         window.deleteItem = async (id, name) => {
             if (confirm(`Are you sure you want to PERMANENTLY delete ${name}? This cannot be undone.`)) {
-                try {
-                    await deleteDoc(doc(db, "products", id));
-                } catch (error) {
+                const { error } = await supabase
+                    .from('products')
+                    .delete()
+                    .eq('id', id);
+
+                if (error) {
                     alert("Error deleting item: " + error.message);
                 }
             }
@@ -301,19 +308,34 @@
             const name = document.getElementById('pName').value;
             const price = document.getElementById('pPrice').value;
             const file = document.getElementById('pFile').files[0];
+            const fileName = Date.now() + "_" + file.name.replace(/[^a-zA-Z0-9.]/g, "_"); // clean filename
 
             try {
-                const storageRef = ref(storage, 'products/' + Date.now() + "_" + file.name);
-                await uploadBytes(storageRef, file);
-                const photoURL = await getDownloadURL(storageRef);
+                // Step 1: Upload image to Supabase Storage (Bucket must be named "products" and be Public)
+                const { data: uploadData, error: uploadError } = await supabase.storage
+                    .from('products')
+                    .upload(fileName, file);
 
-                await addDoc(collection(db, "products"), {
-                    name: name,
-                    price: price,
-                    image: photoURL,
-                    status: "available",
-                    createdAt: new Date()
-                });
+                if (uploadError) throw uploadError;
+
+                // Step 2: Get the public URL for the uploaded image
+                const { data: urlData } = supabase.storage
+                    .from('products')
+                    .getPublicUrl(fileName);
+                
+                const photoURL = urlData.publicUrl;
+
+                // Step 3: Save product info to the database table
+                const { error: dbError } = await supabase
+                    .from("products")
+                    .insert([{
+                        name: name,
+                        price: price,
+                        image: photoURL,
+                        status: "available"
+                    }]);
+
+                if (dbError) throw dbError;
 
                 alert("🚀 Success! Item is now live.");
                 this.reset();
