@@ -121,48 +121,48 @@
         <p>Loading products...</p>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+    // Replace these with the keys you just found in Settings
+    const supabaseUrl = 'https://tquzycsemanwmymlwkiy.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRxdXp5Y3NlbWFud215bWx3a2l5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1ODYwNDEsImV4cCI6MjA4NzE2MjA0MX0.1rqcsediRJClY6Q2uN9oyZFkffo2h87654-9FMDzgHY';
+    const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyB8N3vmlsRFO_Ig2WezUbWOQE3C0gwqgLM",
-            authDomain: "abouba-shop.firebaseapp.com",
-            projectId: "abouba-shop",
-            storageBucket: "abouba-shop.firebasestorage.app",
-            messagingSenderId: "1000556239268",
-            appId: "1:1000556239268:web:48fddd24c37ab15ce18931"
-        };
+    const shopContainer = document.getElementById('shop-container');
 
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const shopContainer = document.getElementById('shop-container');
+    async function fetchProducts() {
+        const { data: products, error } = await supabase
+            .from('products')
+            .select('*')
+            .eq('status', 'available');
 
-        const q = query(collection(db, "products"), where("status", "==", "available"));
+        if (error) {
+            console.error('Error:', error);
+            return;
+        }
 
-        onSnapshot(q, (snapshot) => {
-            shopContainer.innerHTML = "";
-            snapshot.forEach((doc) => {
-                const item = doc.data();
-                shopContainer.innerHTML += `
-                    <div class="product-card">
-                        <img src="${item.image}" class="product-image">
-                        <h3>${item.name}</h3>
-                        <div class="price-tag">${Number(item.price).toLocaleString()} RWF</div>
-                        <button class="whatsapp-btn" onclick="openWhatsApp('${item.name}', '${item.price}')">
-                            💬 Chat on WhatsApp
-                        </button>
-                    </div>
-                `;
-            });
+        shopContainer.innerHTML = "";
+        products.forEach((item) => {
+            shopContainer.innerHTML += `
+                <div class="product-card">
+                    <img src="${item.image}" class="product-image">
+                    <h3>${item.name}</h3>
+                    <div class="price-tag">${Number(item.price).toLocaleString()} RWF</div>
+                    <button class="whatsapp-btn" onclick="openWhatsApp('${item.name}', '${item.price}')">
+                        💬 Chat on WhatsApp
+                    </button>
+                </div>`;
         });
+    }
 
-        window.openWhatsApp = (name, price) => {
-            const phone = "250790797023"; // Updated to match your logo!
-            const message = `Hello! I'm interested in the ${name} (${price} RWF) from Aboubakar's Collection.`;
-            window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
-        };;
-    </script>
+    fetchProducts();
+
+    window.openWhatsApp = (name, price) => {
+        const phone = "250790797023";
+        const message = `Hello! I'm interested in the ${name} (${price} RWF) from Aboubakar's Collection.`;
+        window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
+    };
+</script>
 
     <footer style="margin-top: 60px; padding: 30px; color: #95a5a6; font-size: 0.8rem; text-align: center; border-top: 1px solid #ddd; width: 100%;">
         <p>© 2026 Abouba's Shop - Kigali, Rwanda</p>
@@ -171,5 +171,6 @@
 </body>
 
 </html>
+
 
 
